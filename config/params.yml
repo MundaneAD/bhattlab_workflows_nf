@@ -22,7 +22,7 @@ samples: "/labs/asbhatt/data/bhatt_lab_sequencing/23-03-08_awigen2/all_samples.c
 outdir: "/labs/asbhatt/data/bhatt_lab_sequencing/23-03-08_awigen2/"
 
 # Are you running this process on long-reads from ONT?
-long_reads: false
+long_reads: true
 
 #########################################################################
 # Preprocessing parameters
