@@ -23,7 +23,8 @@ outdir: "/labs/asbhatt/data/bhatt_lab_sequencing/23-03-08_awigen2/"
 
 # Are you running this process on long-reads from ONT?
 long_reads: true
-
+# Are you running a hybrid assembly (using long- and short-reads)?
+hybrid_assembly: true
 #########################################################################
 # Preprocessing parameters
 
