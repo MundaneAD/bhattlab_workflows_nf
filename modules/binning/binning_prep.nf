@@ -93,3 +93,35 @@ process binning_prep_lr {
 	"""
 }
 
+process binning_prep_hybrid {
+    tag "BINNING_PREP_HYBRID for $sample_id"
+
+    input:
+    tuple val(sample_id), path(mags)  // Input is a .fasta file containing all contigs for the sample
+
+    output:
+    tuple val(sample_id), path(mags), path("${sample_id}.depth.txt"), emit: bin_prep
+    path "versions.yml", emit: versions
+
+    script:
+    """
+    # Prepare depth information from the opera-ms .fasta file headers
+    mkdir -p ./output_${sample_id}
+    mv $mags ./output_${sample_id}
+
+    # Parse contig headers to extract depth information
+    awk '/^>/ {
+        split(\$0, arr, " ");
+        contig_id = substr(arr[1], 2);  # Remove '>' from contig name
+        cov_short = substr(arr[3], 11);  # Extract cov_short value
+        cov_long = substr(arr[4], 10);  # Extract cov_long value
+        print contig_id "\\t" cov_short "\\t" cov_long;
+    }' ./output_${sample_id}/${mags} > ${sample_id}.depth.txt
+
+    # Add versions information
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        awk: $(awk --version | head -n 1)
+    END_VERSIONS
+    """
+}
