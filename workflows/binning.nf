@@ -26,11 +26,29 @@ include { input_raw_lr } from '../modules/input/input_raw'
 include { binning_prep_lr } from '../modules/binning/binning_prep'
 include { binning_prep_lr_bam } from '../modules/binning/binning_prep'
 
+/* BINNING for hybrid assembly (e.g., opera-ms)
+ * Uses the new binning_prep_hybrid process
+ */
+
+include { binning_prep_hybrid } from '../modules/binning/binning_prep'
+
 workflow {
     ch_versions = Channel.empty()
     ch_input_assembly = input_check_assembly()
-    
-    if ( params.long_reads) {
+
+     if (params.hybrid_assembly) {
+        ch_input_reads = input_check()
+        
+        ch_input = ch_input_reads
+            .concat(ch_input_assembly)
+            .groupTuple()
+            .map{ sampleid, info -> tuple(sampleid, info[1]) } // Only pass contigs (MAGs)
+        
+        // PREPARE BINNING for hybrid assembly
+        ch_binning_prep = binning_prep_hybrid(ch_input)
+        ch_versions = ch_versions.mix(ch_binning_prep.versions.first())
+    }
+    else if ( params.long_reads) {
         ch_input_reads = input_raw_lr()
 
         ch_input = ch_input_reads
