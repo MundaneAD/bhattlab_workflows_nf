@@ -97,10 +97,10 @@ process binning_prep_hybrid {
     tag "BINNING_PREP_HYBRID for $sample_id"
 
     input:
-    tuple val(sample_id), path(mags)  // Input is a .fasta file containing all contigs for the sample
+    tuple val(sample_id), path(mags), path(short_reads), path(long_reads)
 
     output:
-    tuple val(sample_id), path(mags), path("${sample_id}.depth.txt"), emit: bin_prep
+    tuple val(sample_id), path(mags), path("${sample_id}.depth.txt"), path("${sample_id}_short.bam"), path("${sample_id}_long.bam"), emit: bin_prep
     path "versions.yml", emit: versions
 
     script:
@@ -118,10 +118,28 @@ process binning_prep_hybrid {
         print contig_id "\\t" cov_short "\\t" cov_long;
     }' ./output_${sample_id}/${mags} > ${sample_id}.depth.txt
 
+    # Align short reads to contigs using minimap2
+    minimap2 -ax sr -t ${task.cpus} ./output_${sample_id}/${mags} ${short_reads[0]} ${short_reads[1]} | \
+        samtools sort --threads ${task.cpus} -o ${sample_id}_short.bam
+
+    # Align long reads to contigs using minimap2
+    minimap2 -ax map-ont -t ${task.cpus} ./output_${sample_id}/${mags} ${long_reads} | \
+        samtools sort --threads ${task.cpus} -o ${sample_id}_long.bam
+
+    # Index BAM files
+    samtools index ${sample_id}_short.bam
+    samtools index ${sample_id}_long.bam
+
     # Add versions information
+    minimap2 --version > minimap2.version
+    samtools --version | head -n 1 > samtools.version
+    awk --version | head -n 1 > awk.version
+
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        awk: $(awk --version | head -n 1)
+        minimap2: $(cat minimap2.version)
+        samtools: $(cat samtools.version)
+        awk: $(cat awk.version)
     END_VERSIONS
     """
 }
